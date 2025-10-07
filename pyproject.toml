@@ -5,6 +5,7 @@ description = "Python solution to teton fleet management challenge"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "aiohttp>=3.13.0",
     "fastapi[standard]>=0.118.0",
     "requests>=2.32.5",
 ]
