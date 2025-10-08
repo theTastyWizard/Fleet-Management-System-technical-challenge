@@ -20,12 +20,12 @@ simulating real-time communication between a central API Server and multiple Rem
 - send results back asynchronously
 - automatically reconnect and execute pending commands if disconnected
 
-# Language choice
+## Language choice
 - Python for ease of use and familiarity
 - Would perhaps use Go or Rust for a larger project do to memory management and builtin
 concurrency 
 
-# Development
+## Development
 - started with getting the basics working: python http server and agent using get and
 post request where the agent was constantly polling the server for commands
 - researched dependencies and decided on FastApi for the performance (see benchmarks on their repo), good documentation and ease of use.
@@ -41,7 +41,7 @@ commands
 and executed when reconnected
 
 
-# Possible Improvements
+## Possible Improvements
 - Develop a concrete set of commands and use a command design pattern if the project
 requires new commands to be added frequently
 - Connecting to persistant storage (DB of choice)
@@ -56,3 +56,10 @@ requires new commands to be added frequently
 This project uses **[uv](https://github.com/astral-sh/uv)** for fast Python environment and dependency management.
 
 ### Clone the repo
+
+## Usage
+###  Scaling with workers
+To use more workers and scale the server and usage multiple cores your can use the
+--worker flag that comes from the uvicorn backend
+
+fastapi run --workers 4 ws-async-server.py
