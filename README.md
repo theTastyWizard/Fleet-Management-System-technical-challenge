@@ -1,12 +1,24 @@
-#Architecture
+# Fleet Management System 
+A minimal yet extensible **Fleet Management System** built with **FastAPI**, **aiohttp**, and **WebSockets**
+simulating real-time communication between a central API Server and multiple Remote Agents.
+
+## features:
+- fastAPI-based API server with async endpoints  
+- websocket communication for instant command delivery  
+- resilient agent clients that reconnect automatically  
+- queued commands delivered after reconnection
+
 ## API server
 - Handle requests for sending commands 
 - Send commands to specific agents
+- send commands to multiple and all agents
 - get response from agents
 
 ## Remote agent
-- Get commands and execute them
-- simulate command executing and send response back to server
+- register with API server
+- receive commands instantly (with websocket) and execute them
+- send results back asynchronously
+- automatically reconnect and execute pending commands if disconnected
 
 # Language choice
 - Python for ease of use and familiarity
@@ -24,17 +36,23 @@ Added command queue so agent can check if they have executed all their commands.
 speed of sending commands significantly and having the connection be bidirectional and
 kept alive by reusage of established connection channel. Added storage of push status for
 commands
+- Added better concurrency with task gathering for multiple commands
+- Added reconnect logic for agents that have lost connection, so that commands are stored
+and executed when reconnected
 
 
 # Possible Improvements
 - Develop a concrete set of commands and use a command design pattern if the project
 requires new commands to be added frequently
 - Connecting to persistant storage (DB of choice)
-- Use the persistant storage to store the command queue and add re-connect logic to agents
-- Add proper client authentication ex. JWT in websocket headers
-- Add tracking of connected clients with up-times and integration with dashboards
+- Add proper client authentication ex. JWT in websocket headers or API key validation
+- Add tracking of connected clients with up-times, latency
+- integration with dashboards to vizualize fleet status
 - Containerize for portability using docker/kuberneties/deb/nix packages
 - ability to update code on clients remotely
 
 
+## Installation
+This project uses **[uv](https://github.com/astral-sh/uv)** for fast Python environment and dependency management.
 
+### Clone the repo
