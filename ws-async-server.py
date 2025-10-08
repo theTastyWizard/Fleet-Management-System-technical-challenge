@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, List
@@ -91,18 +91,20 @@ async def send_command_to_all(command: str):
             # add to storage
             commands[agent_id].append(cmd)
 
-            # push if connected
-            if agent_id in connections:
-                await connections[agent_id].send_json({"id": cmd.id, "command": command})
-                commands[agent_id][-1].pushed = True
-                print(f"Pushed '{command} to {agent_id}")
+        # gather tasks for better concurrency
+        # push if connected
+        send_tasks = []
+        for agent_id, ws in connections.items:
+            send_tasks.append(ws.send_json({"id": cmd.id, "command": command}))
+            commands[agent_id][-1].pushed = True
+        await asyncio.gather(*send_tasks, return_exceptions=True)
 
     return {"message": f"Sent '{command}' to {len(agents)} agents."}
 
 
 # send command to multiple agents (list in JSON body)
 @app.post("/commands/send_multiple")
-async def send_command_multiple(agent_ids: List[str] = Body(...), command: str):
+async def send_command_multiple(agent_ids: List[str] = Body(...), command: str = "status"):
     async with storage_lock:
         pushed_agents = []
         for agent_id in agent_ids:
