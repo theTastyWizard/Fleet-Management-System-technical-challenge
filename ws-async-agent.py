@@ -35,15 +35,20 @@ async def send_result(session, cmd_id, result):
 async def listen_for_commands():
     async with aiohttp.ClientSession() as session:
         await register(session)
-        async with websockets.connect(f"{SERVER_WS}/ws/{AGENT_ID}") as ws:
-            print(f"[{AGENT_NAME}] connected to websocket")
-            # deal with messages/commands
-            async for message in ws:
-                data = json.loads(message)
-                cmd_id = data["id"]
-                cmd = data["command"]
-                result = await execute_cmd(cmd)
-                await send_result(session, cmd_id, result)
+        while True:
+            try:
+                async with websockets.connect(f"{SERVER_WS}/ws/{AGENT_ID}") as ws:
+                    print(f"[{AGENT_NAME}] connected to websocket")
+                    # deal with messages/commands
+                    async for message in ws:
+                        data = json.loads(message)
+                        cmd_id = data["id"]
+                        cmd = data["command"]
+                        result = await execute_cmd(cmd)
+                        await send_result(session, cmd_id, result)
+            except (websockets.ConnectionClosed, ConnectionError):
+                print(f"[{AGENT_NAME}] connection lost. Retrying in 5s")
+                await asyncio.sleep(5)
 
 
 if __name__ == "__main__":

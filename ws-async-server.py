@@ -34,8 +34,7 @@ storage_lock = asyncio.Lock()
 async def register_agent(agent: Agent):
     async with storage_lock:
         if agent.id in agents:
-            raise HTTPException(
-                status_code=400, detail="Agent already registered.")
+            raise HTTPException(status_code=400, detail="Agent already registered.")
         agents[agent.id] = agent
         commands[agent.id] = []
     return {"message": f"Agent {agent.name}, id:{agent.id} registered successfully."}
@@ -47,6 +46,15 @@ async def agent_ws(websocket: WebSocket, agent_id: str):
     await websocket.accept()
     connections[agent_id] = websocket
     print(f"Agent {agent_id} connected.")
+
+    # on reconnect, send any pending commands again that havent been executed
+    async with storage_lock:
+        if agent_id in commands:
+            pending = [cmd for cmd in commands[agent_id] if not cmd.executed]
+            for cmd in pending:
+                await websocket.send_json({"id": cmd.id, "command": cmd})
+                print(f"Re-sent pending command '{cmd.command}' to agent {agent_id}")
+
     try:
         while True:
             # keep connection alive, also handle messages from agent
@@ -84,8 +92,7 @@ async def send_command(agent_id: str, command: str):
 async def send_command_to_all(command: str):
     async with storage_lock:
         if not agents:
-            raise HTTPException(
-                status_code=404, detail="No agents registered.")
+            raise HTTPException(status_code=404, detail="No agents registered.")
         for agent_id in agents:
             cmd = Command(id=str(uuid.uuid4()), command=command)
             # add to storage
@@ -104,7 +111,9 @@ async def send_command_to_all(command: str):
 
 # send command to multiple agents (list in JSON body)
 @app.post("/commands/send_multiple")
-async def send_command_multiple(agent_ids: List[str] = Body(...), command: str = "status"):
+async def send_command_multiple(
+    agent_ids: List[str] = Body(...), command: str = "status"
+):
     async with storage_lock:
         pushed_agents = []
         for agent_id in agent_ids:
@@ -116,8 +125,13 @@ async def send_command_multiple(agent_ids: List[str] = Body(...), command: str =
             pushed_agents.append(agent_id)
             # push if connected
             if agent_id in connections:
-                await connections[agent_id].send_json({"id": cmd.id, "command": command})
-    return {"message": f"Sent '{command}' to {len(pushed_agents)} agents", "agents": pushed_agents}
+                await connections[agent_id].send_json(
+                    {"id": cmd.id, "command": command}
+                )
+    return {
+        "message": f"Sent '{command}' to {len(pushed_agents)} agents",
+        "agents": pushed_agents,
+    }
 
 
 # agent response http post
