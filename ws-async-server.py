@@ -101,7 +101,7 @@ async def send_command_to_all(command: str):
         # gather tasks for better concurrency
         # push if connected
         send_tasks = []
-        for agent_id, ws in connections.items:
+        for agent_id, ws in connections.items():
             send_tasks.append(ws.send_json({"id": cmd.id, "command": command}))
             commands[agent_id][-1].pushed = True
         await asyncio.gather(*send_tasks, return_exceptions=True)
@@ -131,6 +131,35 @@ async def send_command_multiple(
     return {
         "message": f"Sent '{command}' to {len(pushed_agents)} agents",
         "agents": pushed_agents,
+    }
+
+
+# get registered agents
+@app.get("/agents")
+async def list_registered_agents():
+    async with storage_lock:
+        return list(agents.values())
+
+
+# basic system status
+@app.get("/status")
+async def system_status():
+    async with storage_lock:
+        total_agents = len(agents)
+        connected_agents = len(connections)
+        queued_commands = sum(
+            len([c for c in cmds if not c.executed]) for cmds in commands.values()
+        )
+        executed_commands = sum(
+            len([c for c in cmds if c.executed]) for cmds in commands.values()
+        )
+
+    return {
+        "total_agents": total_agents,
+        "connected_agents": connected_agents,
+        "queued_commands": queued_commands,
+        "executed_commands": executed_commands,
+        "connected_ids": list(connections.keys()),
     }
 
 
